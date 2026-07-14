@@ -941,7 +941,7 @@ static int show_smap(struct seq_file *m, void *v)
 	show_smap_vma_flags(m, vma);
 
 	m_cache_vma(m, vma);
-	
+
 	return 0;
 }
 
