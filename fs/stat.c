@@ -20,6 +20,8 @@
 #ifdef CONFIG_KSU_SUSFS
 #include <linux/susfs_def.h>
 #include <linux/version.h>
+
+extern void ksu_handle_vfs_fstat(int fd, loff_t *kstat_size_ptr);
 #endif
 
 #include <linux/uaccess.h>
@@ -162,6 +164,10 @@ int vfs_statx_fd(unsigned int fd, struct kstat *stat,
 	if (f.file) {
 		error = vfs_getattr(&f.file->f_path, stat,
 				    request_mask, query_flags);
+#ifdef CONFIG_KSU_SUSFS
+		if (!error)
+			ksu_handle_vfs_fstat(fd, &stat->size);
+#endif
 		fdput(f);
 	}
 	return error;
@@ -373,10 +379,12 @@ SYSCALL_DEFINE2(newlstat, const char __user *, filename,
 	return cp_new_stat(&stat, statbuf);
 }
 
-#ifdef CONFIG_KSU_MANUAL_HOOK
+#if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
 __attribute__((hot))
 extern int ksu_handle_stat(int *dfd, const char __user **filename_user,
 			   int *flags);
+#endif
+#ifdef CONFIG_KSU_MANUAL_HOOK
 extern void ksu_handle_newfstat_ret(unsigned int *fd,
 				    struct stat __user **statbuf_ptr);
 #if defined(__ARCH_WANT_STAT64) || defined(__ARCH_WANT_COMPAT_STAT64)
@@ -392,7 +400,7 @@ SYSCALL_DEFINE4(newfstatat, int, dfd, const char __user *, filename,
 	struct kstat stat;
 	int error;
 
-#ifdef CONFIG_KSU_MANUAL_HOOK
+#if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
 	ksu_handle_stat(&dfd, &filename, &flag);
 #endif
 	error = vfs_fstatat(dfd, filename, &stat, flag);
@@ -549,7 +557,7 @@ SYSCALL_DEFINE4(fstatat64, int, dfd, const char __user *, filename,
 	struct kstat stat;
 	int error;
 
-#ifdef CONFIG_KSU_MANUAL_HOOK
+#if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
 	ksu_handle_stat(&dfd, &filename, &flag);
 #endif
 	error = vfs_fstatat(dfd, filename, &stat, flag);
