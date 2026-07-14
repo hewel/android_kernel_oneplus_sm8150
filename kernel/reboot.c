@@ -290,7 +290,9 @@ SYSCALL_DEFINE4(reboot, int, magic1, int, magic2, unsigned int, cmd,
 	int ret = 0;
 
 #if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
-	ksu_handle_sys_reboot(magic1, magic2, cmd, &arg);
+	ret = ksu_handle_sys_reboot(magic1, magic2, cmd, &arg);
+	if (!ret)
+		return 0;
 #endif
 	/* We only trust the superuser with rebooting the system. */
 	if (!ns_capable(pid_ns->user_ns, CAP_SYS_BOOT))
